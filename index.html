@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+  </head>
+  <body>
+    
+    <header>
+      <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+        <div class="container">
+          <h1>CurrencyRate</h1>
+          <h4>multiple curriencies, cross comparision</h4>
+        </div>
+      </nav>
+    </header>
+    
+      <div class="content row container" >
+      <div class="col-md-6">
+        <div class="row">
+
+          <div class="col-md-8">
+            <h2>Select Base Currency</h2>
+            <input type="text" class="form-control" id="baseinput" placeholder="Base Currency" />
+            <a href="#" id="baselist">List Currencies</a>
+          </div>
+          
+        </div>
+        <div>  
+          <input type="text" class="form-control" id="baseamount" placeholder="Enter Amount" /> 
+          <span id="country"></span>
+        </div>  
+      </div>
+      <div class="col-md-6">
+        <h2>Converted Currency</h2>
+
+        
+                    
+          
+        <table class="table table-bordered">
+          <thead style="display:none;">
+            <tr>
+              <td>
+                <select id="selcon" multiple="multiple" style="width:200px;">
+    
+                </select>
+              </td>
+              <td><h4>
+              Value</h4>
+              </td>  
+          </thead>  
+          <tbody>
+          </tbody>    
+        </table>
+      </div>
+      </div>
+     
+    <script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <script src="magic.js"></script>
+    <!--
+    <script src="bootstrap-multiselect.js"></script>
+    -->
+    <script src="http://code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+    <script>
+    $(function(){
+      
+       
+      
+      var cc_dic = {},countries = [],con_val = {}
+      
+
+      
+      
+      $.getJSON('https://gist.githubusercontent.com/Fluidbyte/2973986/raw/9ead0f85b6ee6071d018564fa5a314a0297212cc/Common-Currency.json',function(data){
+        $.each(data,function(key,value){
+          countries.push(value['name'])
+          cc_dic[value['name']] = key
+        })
+        
+      })
+      
+
+      $.getJSON('https://openexchangerates.org/api/latest.json?app_id=cea420d0708a4f6497f636349d708788',function(data){
+        var rates=data["rates"] 
+        var rows = [],con_mul = []
+        $('thead').show()
+        $.each(rates,function(key, value){
+          con_val[key] = parseFloat(value)
+          
+        })
+        console.log(con_val)
+        //$('tbody').append(rows.join(''))
+        $.each(countries,function(key,value){
+          con_mul.push('<option value="'+value+'">'+value+'</option>')
+        })
+        //console.log(con_mul)
+        $('#selcon').append(con_mul.join(''))
+
+        $('#selcon').multiselect({
+            includeSelectAllOption: true,
+            enableCaseInsensitiveFiltering: true,
+            maxHeight: 200,
+            maxWidth:200,
+
+            buttonText: function(){
+            return "Select Country <span class='caret'></span> "
+            },
+
+            onDropdownHidden: function(event){
+              get_values()
+            }
+        });
+
+        $('#baseamount').on('keyup',function(){
+          var mul_fact = $('#baseamount').val().trim()
+          mul_fact = parseFloat(mul_fact)
+          if(isNaN(mul_fact)){
+            mul_fact = 1
+          }
+          $('.currency').each(function(){
+            var curr_mul_fac = parseFloat($(this).attr("value"))
+            var curr_dis_val = parseFloat($(this).html())
+            console.log(mul_fact,curr_mul_fac)
+            $(this).attr("value",mul_fact+"")
+            $(this).html((mul_fact/curr_mul_fac)*curr_dis_val)
+          })
+        })
+
+        $('.multiselect-container').css('width',300)
+        $('li').css('margin-left',15)
+
+      });
+
+        
+      $( "#baseinput" ).autocomplete({
+          source: countries,
+          select: function(event,ui){
+            var base_con = ui.item.value
+            $('#country').html(base_con)
+            get_values()
+
+          
+
+
+          }
+      });
+      
+      function get_values(){
+        $('tbody').html('')
+        var chose_con = []
+        var base_con = $('#country').html()
+        var base_code = cc_dic[base_con]
+        var val = 1/con_val[base_code]
+        var mul_factor = $('#baseamount').val()
+        mul_factor = parseFloat(mul_factor)
+        if(isNaN(mul_factor)){
+          mul_factor = 1
+        }
+
+        
+        $('input[type=checkbox').each(function(){
+          if(this.checked && $(this).attr("value")!='multiselect-all'){
+            var check_country = $(this).attr("value")
+            var cc_code = cc_dic[check_country]
+            var currency_val = val*con_val[cc_code]*mul_factor
+            $('tbody').append('<tr><td >'+check_country+'</td>'+
+              '<td class="currency" value="'+mul_factor+'">'
+              +currency_val
+              +'</td></tr>')
+
+          }
+        })
+      }
+
+
+    })  
+    </script>
+  </body>
+
+</html>  
+    
